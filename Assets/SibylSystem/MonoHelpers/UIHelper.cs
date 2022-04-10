@@ -1007,7 +1007,7 @@ public static class UIHelper
         path = Environment.CurrentDirectory.Replace("\\", "/") + "/" + path;
         path = "file:///" + path;
         GameObject audio_helper = Program.I().ocgcore.create_s(Program.I().mod_audio_effect);
-        audio_helper.GetComponent<audio_helper>().play(path, Program.I().setting.soundValue());
+        audio_helper.GetComponent<audio_helper>().play(path, val);
         Program.I().destroy(audio_helper,5f);
     }
 
