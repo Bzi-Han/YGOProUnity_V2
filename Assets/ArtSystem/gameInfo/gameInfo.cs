@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Threading;
 
 public class gameUIbutton
 {
@@ -50,6 +52,9 @@ public class gameInfo : MonoBehaviour
 
     int lastTickTime = 0;
 
+    Queue<KeyValuePair<string, string>> selfLifePointQueue = new Queue<KeyValuePair<string, string>>();
+    Queue<KeyValuePair<string, string>> enemyLifePointQueue = new Queue<KeyValuePair<string, string>>();
+
     // Use this for initialization
     void Start()
     {
@@ -88,6 +93,20 @@ public class gameInfo : MonoBehaviour
             UIHelper.getByName<UISprite>(UIHelper.getByName<UIToggle>(gameObject, "watch_").gameObject, "Background").color = c;
             UIHelper.getByName<UISprite>(UIHelper.getByName<UIToggle>(gameObject, "use_").gameObject, "Background").color = c;
         }
+
+        if (selfLifePointQueue.Count > 0)
+        {
+            KeyValuePair<string, string> v = selfLifePointQueue.Dequeue();
+            me.api_healthHint.text = v.Key;
+            UIHelper.playSound(v.Value, Program.I().setting.soundValue());
+        }
+        if (enemyLifePointQueue.Count > 0)
+        {
+            KeyValuePair<string, string> v = enemyLifePointQueue.Dequeue();
+            opponent.api_healthHint.text = v.Key;
+            UIHelper.playSound(v.Value, Program.I().setting.soundValue());
+        }
+
         float k = ((float)(Screen.width - Program.I().cardDescription.width)) / 1200f;
         if (k > 1.2f)
         {
@@ -369,10 +388,96 @@ public class gameInfo : MonoBehaviour
         }
     }
 
+    public void setLifePoint(int raw, int target, int type)
+    {
+        if(0 == type)
+        {
+            if (0 == target)
+                me.api_healthHint.text = raw.ToString();
+            else
+            {
+                new Thread(() =>
+                {
+                    int result = raw + target;
+                    if(result > 0)
+                    {
+                        int step = target / 5;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            selfLifePointQueue.Enqueue(new KeyValuePair<string, string>((raw += step).ToString(), "lpcount"));
+                            Thread.Sleep(100);
+                        }
+                        selfLifePointQueue.Enqueue(new KeyValuePair<string, string>(result.ToString(), "lpstop"));
+                    }
+                    else
+                    {
+                        int step = raw / 5;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            selfLifePointQueue.Enqueue(new KeyValuePair<string, string>((raw -= step).ToString(), "lpcount"));
+                            Thread.Sleep(100);
+                        }
+                        selfLifePointQueue.Enqueue(new KeyValuePair<string, string>("0", "lpzero"));
+                    }
+                }).Start();
+            }
+        }
+        else
+        {
+            if (0 == target)
+                opponent.api_healthHint.text = raw.ToString();
+            else
+            {
+                new Thread(() =>
+                {
+                    int result = raw + target;
+                    if (result > 0)
+                    {
+                        int step = target / 5;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            enemyLifePointQueue.Enqueue(new KeyValuePair<string, string>((raw += step).ToString(), "lpcount"));
+                            Thread.Sleep(100);
+                        }
+                        enemyLifePointQueue.Enqueue(new KeyValuePair<string, string>(result.ToString(), "lpstop"));
+                    }
+                    else
+                    {
+                        int step = raw / 5;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            enemyLifePointQueue.Enqueue(new KeyValuePair<string, string>((raw -= step).ToString(), "lpcount"));
+                            Thread.Sleep(100);
+                        }
+                        enemyLifePointQueue.Enqueue(new KeyValuePair<string, string>("0", "lpzero"));
+                    }
+                }).Start();
+            }
+        }
+    }
+
+    private int selfLastLifePoint = 0;
+    private int enemyLastLifePoint = 0;
     public void realize()
     {
-        me.api_healthHint.text = ((float)Program.I().ocgcore.life_0 > 0 ? Program.I().ocgcore.life_0 : 0).ToString();
-        opponent.api_healthHint.text = ((float)Program.I().ocgcore.life_1 > 0 ? Program.I().ocgcore.life_1 : 0).ToString();
+        int selfLifePoint = Program.I().ocgcore.life_0;
+        int enemyLifePoint = Program.I().ocgcore.life_1;
+
+        if (0 != selfLastLifePoint && selfLifePoint != selfLastLifePoint)
+            setLifePoint(selfLastLifePoint, selfLifePoint - selfLastLifePoint, 0);
+        else if(0 == selfLastLifePoint)
+            me.api_healthHint.text = selfLifePoint.ToString();
+
+        if (0 != enemyLastLifePoint && enemyLifePoint != enemyLastLifePoint)
+            setLifePoint(enemyLastLifePoint, enemyLifePoint - enemyLastLifePoint, 1);
+        else if (0 == enemyLastLifePoint)
+            opponent.api_healthHint.text = enemyLifePoint.ToString();
+
+        selfLastLifePoint = selfLifePoint;
+        enemyLastLifePoint = enemyLifePoint;
+
+        //me.api_healthHint.text = ((float)Program.I().ocgcore.life_0 > 0 ? Program.I().ocgcore.life_0 : 0).ToString();
+        //opponent.api_healthHint.text = ((float)Program.I().ocgcore.life_1 > 0 ? Program.I().ocgcore.life_1 : 0).ToString();
         me.api_name.text = Program.I().ocgcore.name_0_c;
         opponent.api_name.text = Program.I().ocgcore.name_1_c;
         me.api_face.mainTexture = UIHelper.getFace(Program.I().ocgcore.name_0_c);
