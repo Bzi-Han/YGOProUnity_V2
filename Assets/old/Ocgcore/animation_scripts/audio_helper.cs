@@ -17,7 +17,7 @@ public class audio_helper : MonoBehaviour {
         }
 	}
     bool played = false;
-    public void play(string u,float vol)
+    public void play(string u, float vol)
     {
         played = false;
         WWW www = new WWW(u);
@@ -27,19 +27,27 @@ public class audio_helper : MonoBehaviour {
         audioMgr.volume = vol;
     }
 
-    public void change_bgm(string str)
+    public void change_bgm(string str, float vol, bool loop)
     {
         played = false;
         WWW www = new WWW(str);
 
         AudioClip ac = www.GetAudioClip(true, true);
         audioMgr.clip = ac;
-        audioMgr.loop = true;
+        audioMgr.volume = vol;
+        audioMgr.loop = loop;
     }
 
     public void close_bgm()
     {
         audioMgr.Pause();
+    }
+
+    public void stop()
+    {
+        audioMgr.Stop();
+        audioMgr.clip = null;
+        played = false;
     }
 
 }

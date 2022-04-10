@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8254360}
   - component: {fileID: 11492110}
   m_Layer: 0
-  m_Name: mod_audio_effect
+  m_Name: mod_audio_bgm
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

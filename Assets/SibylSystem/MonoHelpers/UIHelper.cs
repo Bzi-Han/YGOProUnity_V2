@@ -1011,6 +1011,29 @@ public static class UIHelper
         Program.I().destroy(audio_helper,5f);
     }
 
+    internal static void playBgm(string p, float val, bool loop = false)
+    {
+        string path = "sound/" + p + ".mp3";
+        Program.PrintToChat("playBgm:" + path);
+        if (File.Exists(path) == false)
+        {
+            path = "sound/" + p + ".wav";
+        }
+        if (File.Exists(path) == false)
+        {
+            path = "sound/" + p + ".ogg";
+        }
+        if (File.Exists(path) == false)
+        {
+            Program.PrintToChat("playBgm:" + path + "not found");
+            return;
+        }
+        path = Environment.CurrentDirectory.Replace("\\", "/") + "/" + path;
+        path = "file:///" + path;
+        Program.PrintToChat("playBgm:" + path);
+        Program.bgmHelper.change_bgm(path, val, loop);
+    }
+
     internal static string getGPSstringLocation(GPS p1)
     {
         string res = "";

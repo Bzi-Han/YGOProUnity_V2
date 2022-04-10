@@ -20,6 +20,7 @@ public class Program : MonoBehaviour
     public GameObject mod_winExplode;
     public GameObject mod_loseExplode;
     public GameObject mod_audio_effect;
+    public GameObject mod_audio_bgm;
     public GameObject mod_ocgcore_card;
     public GameObject mod_ocgcore_card_cloude;
     public GameObject mod_ocgcore_card_number_shower;
@@ -266,6 +267,8 @@ public class Program : MonoBehaviour
     public static Camera camera_main_2d = null;
     public static GameObject ui_main_3d = null;
     public static Camera camera_main_3d = null;
+    public static GameObject backgroundMusicComponent = null;
+    public static audio_helper bgmHelper = null;
 
     public static Vector3 cameraPosition = new Vector3(0, 23, -23);
     public static Vector3 cameraRotation = new Vector3(60, 0, 0);
@@ -424,6 +427,12 @@ public class Program : MonoBehaviour
             initializeALLservants();
             loadResources();
             readParams();
+
+            backgroundMusicComponent = create(mod_audio_bgm);
+            bgmHelper = backgroundMusicComponent.GetComponent<audio_helper>();
+
+            ocgcore.voiceOpened = "1" == Config.Get("voice_", "1");
+            ocgcore.bgmOpened = "1" == Config.Get("bgm_", "1");
         });
 
     }

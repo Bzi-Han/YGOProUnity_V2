@@ -444,6 +444,22 @@ public class Ocgcore : ServantWithCardDescription
     public void shiftCondition(Condition condition)
     {
         this.condition = condition;
+
+        // BGM与语音开关控制
+        Func<int> audioControl = () => {    
+            UIHelper.addButtonEvent_toolShift(toolBar, "voiceopen_", onVoiceOpen);
+            UIHelper.addButtonEvent_toolShift(toolBar, "voicestop_", onVoiceClose);
+            UIHelper.addButtonEvent_toolShift(toolBar, "bgmopen_", onBgmOpen);
+            UIHelper.addButtonEvent_toolShift(toolBar, "bgmstop_", onBgmClose);
+
+            if (!voiceOpened)
+                UIHelper.getByName<toolShift>(toolBar, "voiceopen_").shift();
+            if (!bgmOpened)
+                UIHelper.getByName<toolShift>(toolBar, "bgmopen_").shift();
+
+            return 233;
+        };
+
         switch (condition)
         {
             case Condition.duel:
@@ -455,6 +471,8 @@ public class Ocgcore : ServantWithCardDescription
                 UIHelper.registEvent(toolBar, "rush_", on_rush);
                 UIHelper.addButtonEvent_toolShift(toolBar, "go_", on_go);
                 UIHelper.addButtonEvent_toolShift(toolBar, "stop_", on_stop);
+
+                audioControl();
                 break;
             case Condition.watch:
                 SetBar(Program.I().new_bar_watchDuel, 0, 0);
@@ -464,6 +482,8 @@ public class Ocgcore : ServantWithCardDescription
                 UIHelper.registEvent(toolBar, "right_", on_right);
                 UIHelper.addButtonEvent_toolShift(toolBar, "go_", on_go);
                 UIHelper.addButtonEvent_toolShift(toolBar, "stop_", on_stop);
+
+                audioControl();
                 break;
             case Condition.record:
                 SetBar(Program.I().new_bar_watchRecord, 0, 0);
@@ -472,10 +492,49 @@ public class Ocgcore : ServantWithCardDescription
                 UIHelper.registEvent(toolBar, "right_", on_right);
                 UIHelper.addButtonEvent_toolShift(toolBar, "go_", on_go);
                 UIHelper.addButtonEvent_toolShift(toolBar, "stop_", on_stop);
+
+                audioControl();
                 break;
             default:
                 break;
         }
+    }
+
+
+    // 语音和背景音乐控制
+    public bool voiceOpened = true;
+    public bool bgmOpened = true;
+    public List<string> bgmList = new List<string>();
+
+    public void playRandomBgm()
+    {
+        System.Random random = new System.Random();
+
+        UIHelper.playBgm(bgmList[random.Next(0, bgmList.Count - 1)], Program.I().setting.bgmValue());
+    }
+
+    private void onVoiceOpen()
+    {
+        Config.Set("voice_", "1");
+        voiceOpened = true;
+    }
+    private void onVoiceClose()
+    {
+        Config.Set("voice_", "0");
+        voiceOpened = false;
+    }
+
+    private void onBgmOpen()
+    {
+        Config.Set("bgm_", "1");
+        bgmOpened = true;
+        playRandomBgm();
+    }
+    private void onBgmClose()
+    {
+        Config.Set("bgm_", "0");
+        bgmOpened = false;
+        Program.bgmHelper.stop();
     }
 
 
@@ -706,7 +765,7 @@ public class Ocgcore : ServantWithCardDescription
         {
             if (isShowed)
             {
-                UIHelper.playSound("phase", 1f);
+                UIHelper.playSound("phase", Program.I().setting.soundValue());
                 gameField.animation_show_big_string(GameTextureManager.ts, true);
             }
             //Program.I().cardDescription.clearAllLog();
@@ -739,7 +798,7 @@ public class Ocgcore : ServantWithCardDescription
         {
             if (isShowed)
             {
-                UIHelper.playSound("nextturn", 1f);
+                UIHelper.playSound("nextturn", Program.I().setting.soundValue());
                 gameField.animation_show_big_string(GameTextureManager.rs, true);
             }
             Program.I().cardDescription.clearAllLog();
@@ -1326,6 +1385,13 @@ public class Ocgcore : ServantWithCardDescription
                 }
                 break;
             case GameMessage.Start:
+                // 扫描BGM
+                bgmList.Clear();
+                DirectoryInfo diri = new DirectoryInfo("sound/randombgms");
+                foreach (FileInfo f in diri.GetFiles())
+                    bgmList.Add("randombgms/" + f.Name.Replace(".ogg", ""));
+
+                // 以下是原来的代码
                 confirmedCards.Clear();
                 gameField.currentPhase = GameField.ph.dp;
                 result = duelResult.disLink;
@@ -2661,7 +2727,7 @@ public class Ocgcore : ServantWithCardDescription
             point.z = 2;
             if (Program.I().setting.setting.Vwin.value)
             {
-                UIHelper.playSound("explode", 0.4f);
+                UIHelper.playSound("explode", Program.I().setting.soundValue());
                 GameObject explode = create(result == duelResult.win ? Program.I().mod_winExplode : Program.I().mod_loseExplode);
                 var co = explode.AddComponent<animation_screen_lock>();
                 co.screen_point = point;
@@ -2799,8 +2865,10 @@ public class Ocgcore : ServantWithCardDescription
         }
     }
 
+    private int turnPlayer = 0;
     void practicalizeMessage(Package p)
     {
+        string voicePrefix = "";
         int player = 0;
         int count = 0;
         int code = 0;
@@ -2976,6 +3044,18 @@ public class Ocgcore : ServantWithCardDescription
                 }
                 clearChainEnd();
                 hideCaculator();
+
+                // 对局开始语音
+                if(voiceOpened)
+                {
+                    UIHelper.playSound("Duel01", Program.I().setting.voiceValue());
+                    UIHelper.playSound("Duel02", Program.I().setting.voiceValue());
+                }
+                if(bgmOpened)
+                {
+                    // UIHelper.playBgm("bgm", Program.I().setting.bgmValue());
+                    playRandomBgm();
+                }
                 break;
             case GameMessage.ReloadField:
                 if (MasterRule >= 4)
@@ -4321,7 +4401,7 @@ public class Ocgcore : ServantWithCardDescription
                 break;
             case GameMessage.RefreshDeck:
             case GameMessage.ShuffleDeck:
-                UIHelper.playSound("shuffle", 1f);
+                UIHelper.playSound("shuffle", Program.I().setting.soundValue());
                 player = localPlayer(r.ReadByte());
                 for (int i = 0; i < cards.Count; i++) if (cards[i].gameObject.activeInHierarchy)
                     {
@@ -4337,7 +4417,7 @@ public class Ocgcore : ServantWithCardDescription
                 break;
             case GameMessage.ShuffleHand:
                 realize();
-                UIHelper.playSound("shuffle", 1f);
+                UIHelper.playSound("shuffle", Program.I().setting.soundValue());
                 player = localPlayer(r.ReadByte());
                 animation_suffleHand(player);
                 Sleep(21);
@@ -4347,7 +4427,7 @@ public class Ocgcore : ServantWithCardDescription
                 Sleep(120);
                 break;
             case GameMessage.ShuffleSetCard:
-                UIHelper.playSound("shuffle", 1f);
+                UIHelper.playSound("shuffle", Program.I().setting.soundValue());
                 count = r.ReadByte();
                 List<GPS> gpss = new List<GPS>();
                 for (int i = 0; i < count; i++)
@@ -4385,21 +4465,41 @@ public class Ocgcore : ServantWithCardDescription
                 //    gameInfo.setTime(player, timeLimit);
                 //}
                 toDefaultHint();
-                UIHelper.playSound("nextturn", 1f);
+                UIHelper.playSound("nextturn", Program.I().setting.soundValue());
                 gameField.animation_show_big_string(GameTextureManager.nt);
                 //if (player == 1 && InAI == true)
                 //{
                 //    showWait();
                 //}
                 gameInfo.setExcited((turns % 2 == (isFirst ? 0 : 1)) ? 1 : 0);
+
+                // 回合切换语音
+                turnPlayer = player;
+                if(voiceOpened)
+                {
+                    voicePrefix = 0 == player ? "self" : "opponent";
+                    UIHelper.playSound(voicePrefix + "/phase/orenoturn", Program.I().setting.voiceValue());
+                }
                 break;
             case GameMessage.NewPhase:
                 removeSelectedAnimations();
                 toDefaultHint();
-                UIHelper.playSound("phase", 1f);
+                UIHelper.playSound("phase", Program.I().setting.soundValue());
                 int phrase = r.ReadUInt16();
+                voicePrefix = 0 == turnPlayer ? "self" : "opponent"; // 语音人物类型
+
                 if (GameStringHelper.differ(phrase, (long)DuelPhase.BattleStart))
                 {
+                    // 战斗开始
+                    if(voiceOpened)
+                    {
+                        UIHelper.playSound(voicePrefix + "/talk/ikuze", Program.I().setting.voiceValue());
+                        Program.go(500, () =>
+                        {
+                            UIHelper.playSound(voicePrefix + "/phase/battle", Program.I().setting.voiceValue());
+                        });
+                    }
+
                     gameField.animation_show_big_string(GameTextureManager.bp);
                 }
                 if (GameStringHelper.differ(phrase, (long)DuelPhase.Draw))
@@ -4408,6 +4508,12 @@ public class Ocgcore : ServantWithCardDescription
                 }
                 if (GameStringHelper.differ(phrase, (long)DuelPhase.End))
                 {
+                    // 回合结束
+                    if(voiceOpened)
+                    {
+                        UIHelper.playSound(voicePrefix + "/phase/turnend", Program.I().setting.voiceValue());
+                    }
+
                     gameField.animation_show_big_string(GameTextureManager.ep);
                 }
                 if (GameStringHelper.differ(phrase, (long)DuelPhase.Main1))
@@ -4456,18 +4562,18 @@ public class Ocgcore : ServantWithCardDescription
                         {
                             if (Program.I().setting.setting.Vset.value == true)
                                 card.positionEffect(Program.I().mod_ocgcore_decoration_card_setted);
-                            UIHelper.playSound("set", 1f);
+                            UIHelper.playSound("set", Program.I().setting.soundValue());
                         }
                     }
                     if (to.location == (UInt32)CardLocation.Grave)
                     {
-                        if ((from.location & (UInt32)CardLocation.MonsterZone) > 0) UIHelper.playSound("destroyed", 1f);
+                        if ((from.location & (UInt32)CardLocation.MonsterZone) > 0) UIHelper.playSound("destroyed", Program.I().setting.soundValue());
                         if (Program.I().setting.setting.Vmove.value == true)
                             MonoBehaviour.Destroy((GameObject)MonoBehaviour.Instantiate(Program.I().mod_ocgcore_decoration_tograve, card.gameObject.transform.position, Quaternion.identity), 5f);
                     }
                     if (to.location == (UInt32)CardLocation.Removed)
                     {
-                        UIHelper.playSound("destroyed", 1f);
+                        UIHelper.playSound("destroyed", Program.I().setting.soundValue());
                         if (Program.I().setting.setting.Vmove.value == true)
                             card.fast_decoration(Program.I().mod_ocgcore_decoration_removed);
                     }
@@ -4477,6 +4583,10 @@ public class Ocgcore : ServantWithCardDescription
                 realize();
                 break;
             case GameMessage.Set:
+                code = r.ReadInt32();
+                gps = r.ReadGPS();
+                card = GCS_cardGet(gps, false);
+                summonVoice(card, turnPlayer, GameMessage.Set);
                 break;
             case GameMessage.Swap:
                 realize();
@@ -4492,7 +4602,10 @@ public class Ocgcore : ServantWithCardDescription
                 if (card != null)
                 {
                     card.set_code(code);
-                    UIHelper.playSound("summon", 1f);
+
+                    summonVoice(card, turnPlayer, GameMessage.Summoning);
+
+                    UIHelper.playSound("summon", Program.I().setting.soundValue());
                     if (Program.I().setting.setting.Vsum.value == true)
                     {
                         GameObject mod = Program.I().mod_ocgcore_ss_spsummon_normal;
@@ -4512,6 +4625,9 @@ public class Ocgcore : ServantWithCardDescription
                 if (card != null)
                 {
                     card.set_code(code);
+
+                    summonVoice(card, turnPlayer, GameMessage.SpSummoning);
+
                     if (Program.I().setting.setting.Vspsum.value==true)
                     {
                         GameObject mod = Program.I().mod_ocgcore_ss_summon_light;
@@ -4535,7 +4651,7 @@ public class Ocgcore : ServantWithCardDescription
                             {
                                 mod = Program.I().mod_ocgcore_ss_spsummon_ronghe;
                             }
-                            UIHelper.playSound("specialsummon2", 1f);
+                            UIHelper.playSound("specialsummon2", Program.I().setting.soundValue());
                         }
                         else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Synchro))
                         {
@@ -4543,7 +4659,7 @@ public class Ocgcore : ServantWithCardDescription
                             {
                                 mod = Program.I().mod_ocgcore_ss_spsummon_tongtiao;
                             }
-                            UIHelper.playSound("specialsummon2", 1f);
+                            UIHelper.playSound("specialsummon2", Program.I().setting.soundValue());
 
                         }
                         else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Ritual))
@@ -4552,7 +4668,7 @@ public class Ocgcore : ServantWithCardDescription
                             {
                                 mod = Program.I().mod_ocgcore_ss_spsummon_yishi;
                             }
-                            UIHelper.playSound("specialsummon2", 1f);
+                            UIHelper.playSound("specialsummon2", Program.I().setting.soundValue());
                         }
                         else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Link))
                         {
@@ -4564,11 +4680,11 @@ public class Ocgcore : ServantWithCardDescription
                                 card.animationEffect(Program.I().mod_ocgcore_ss_spsummon_link);
                                 mod.GetComponent<partical_scaler>().scale = Mathf.Clamp(card.get_data().Attack, 0, 3500) / 3000f * 3f;
                             }
-                            UIHelper.playSound("specialsummon2", 1f);
+                            UIHelper.playSound("specialsummon2", Program.I().setting.soundValue());
                         }
                         else
                         {
-                            UIHelper.playSound("specialsummon", 1f);
+                            UIHelper.playSound("specialsummon", Program.I().setting.soundValue());
                             mod.GetComponent<partical_scaler>().scale = Mathf.Clamp(card.get_data().Attack, 0, 3500) / 3000f * 3f;
                         }
                         card.animationEffect(mod);
@@ -4577,19 +4693,19 @@ public class Ocgcore : ServantWithCardDescription
                     {
                         if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Fusion))
                         {
-                            UIHelper.playSound("specialsummon2", 1f);
+                            UIHelper.playSound("specialsummon2", Program.I().setting.soundValue());
                         }
                         else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Synchro))
                         {
-                            UIHelper.playSound("specialsummon2", 1f);
+                            UIHelper.playSound("specialsummon2", Program.I().setting.soundValue());
                         }
                         else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Ritual))
                         {
-                            UIHelper.playSound("specialsummon2", 1f);
+                            UIHelper.playSound("specialsummon2", Program.I().setting.soundValue());
                         }
                         else
                         {
-                            UIHelper.playSound("specialsummon", 1f);
+                            UIHelper.playSound("specialsummon", Program.I().setting.soundValue());
                         }
                     }
                     card.animation_show_off( true);
@@ -4606,7 +4722,10 @@ public class Ocgcore : ServantWithCardDescription
                 if (card != null)
                 {
                     card.set_code(code);
-                    UIHelper.playSound("summon", 1f);
+
+                    summonVoice(card, turnPlayer, GameMessage.FlipSummoning);
+
+                    UIHelper.playSound("summon", Program.I().setting.soundValue());
                     if (Program.I().setting.setting.Vflip.value == true)
                     {
                         GameObject mod = Program.I().mod_ocgcore_ss_spsummon_normal;
@@ -4625,6 +4744,9 @@ public class Ocgcore : ServantWithCardDescription
                 if (card != null)
                 {
                     card.set_code(code);
+
+                    effectVoice(card, turnPlayer, GameMessage.Chaining);
+
                     UIHelper.playSound("activate", 1);
                     card.animation_show_off( false);
                     if ((card.get_data().Type & (int)CardType.Monster) > 0)
@@ -4885,6 +5007,13 @@ public class Ocgcore : ServantWithCardDescription
                 Sleep(targetTime);
                 break;
             case GameMessage.Draw:
+                // 抽卡
+                if(0 != turns && voiceOpened)
+                {
+                    voicePrefix = 0 == localPlayer(r.ReadByte()) ? "self" : "opponent";
+                    UIHelper.playSound(voicePrefix + "/card/cardhiku", Program.I().setting.voiceValue());
+                }
+
                 UIHelper.playSound("draw", 1);
                 realize();
                 Sleep(10);
@@ -4894,7 +5023,7 @@ public class Ocgcore : ServantWithCardDescription
                 gameInfo.realize();
                 player = localPlayer(r.ReadByte());
                 val = r.ReadInt32();
-                UIHelper.playSound("damage", 1f);
+                UIHelper.playSound("damage", Program.I().setting.soundValue());
                 gameField.animation_show_lp_num(player, false, (int)val);
                 if (Program.I().setting.setting.Vdamage.value == true)
                 {
@@ -4906,7 +5035,7 @@ public class Ocgcore : ServantWithCardDescription
                 gameInfo.realize();
                 player = localPlayer(r.ReadByte());
                 val = r.ReadInt32();
-                UIHelper.playSound("gainlp", 1f);
+                UIHelper.playSound("gainlp", Program.I().setting.soundValue());
                 gameField.animation_show_lp_num(player, true, (int)val);
                 Sleep(60);
                 break;
@@ -4919,7 +5048,7 @@ public class Ocgcore : ServantWithCardDescription
                 gameCard card_to = GCS_cardGet(to, false);
                 if (card_from != null)
                 {
-                    UIHelper.playSound("equip", 1f);
+                    UIHelper.playSound("equip", Program.I().setting.soundValue());
                     if (Program.I().setting.setting.Veqquip.value == true)
                     {
                         card_from.fast_decoration(Program.I().mod_ocgcore_decoration_magic_zhuangbei);
@@ -4978,9 +5107,12 @@ public class Ocgcore : ServantWithCardDescription
                 Sleep(10);
                 break;
             case GameMessage.Attack:
-                UIHelper.playSound("attack", 1);
                 GPS p1 = r.ReadGPS();
                 GPS p2 = r.ReadGPS();
+
+                attackVoice(GCS_cardGet(p1, false), GCS_cardGet(p2, false), turnPlayer, GameMessage.Attack);
+
+                UIHelper.playSound("attack", 1);
                 VectorAttackCard = get_point_worldposition(p1);
                 VectorAttackTarget = Vector3.zero;
                 if (p2.location == 0)
@@ -5090,7 +5222,10 @@ public class Ocgcore : ServantWithCardDescription
                         r.ReadInt32();
                     }
                     r.ReadByte();
-                    UIHelper.playSound("explode", 0.4f);
+
+                    attackVoice(attackCard, attackedCard, turnPlayer, GameMessage.Battle);
+                    
+                    UIHelper.playSound("explode", Program.I().setting.soundValue());
                     int amount = (int)(Mathf.Clamp(attackCard.get_data().Attack, 0, 3500) * 0.8f);
                     iTween.ShakePosition(Program.camera_game_main.gameObject, iTween.Hash(
                                             "x", (float)amount / 1500f,
@@ -5367,6 +5502,204 @@ public class Ocgcore : ServantWithCardDescription
                 break;
         }
         r.BaseStream.Seek(0, 0);
+    }
+
+    // 召唤语音
+    private void summonVoice(gameCard card, int player, GameMessage summonType)
+    {
+        if (!voiceOpened)
+            return;
+        // TODO: 检测是否CardLocation.Unknown，如果为否根据card.controller和player来遍历player玩家的可用卡片，然后模拟效果，然后播放bgm
+
+        // 提前在selectchain中保存卡片出处，然后再播放voice
+        string voicePrefix = 0 == card.p.controller ? "self" : "opponent";
+
+        if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Fusion)) //融合召唤
+        {
+            UIHelper.playSound(voicePrefix + "/monster/fusionsummon", 1);
+        }
+        else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Synchro)) //同调召唤
+        {
+            UIHelper.playSound(voicePrefix + "/monster/synchronsummon", 1);
+        }
+        else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Ritual)) //仪式召唤
+        {
+            UIHelper.playSound(voicePrefix + "/monster/ritualsummon", 1);
+        }
+        else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Xyz)) //超量召唤
+        {
+            UIHelper.playSound(voicePrefix + "/monster/xyzsummon", 1);
+        }
+        else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Pendulum)) //灵摆召唤
+        {
+            UIHelper.playSound(voicePrefix + "/monster/pendulumsummon", 1);
+        }
+        else
+        {
+            //Program.PrintToChat("controller:" + card.p.controller);
+            //Program.PrintToChat("location:" + card.p.location);
+            //Program.PrintToChat("position:" + card.p.position);
+            //Program.PrintToChat("sequence:" + card.p.sequence);
+            if (GameMessage.SpSummoning == summonType) //特殊召唤
+            {
+                UIHelper.playSound(voicePrefix + "/monster/specialsummon", 1);
+            }
+            else if(GameMessage.FlipSummoning == summonType) //反转召唤
+            {
+
+            }
+            else if ((UInt32)CardPosition.FaceUpAttack == card.p.position) //攻击表示召唤
+            {
+                if (card.get_data().Level > 4)
+                    UIHelper.playSound(voicePrefix + "/monster/advancedsummon", 1);
+                else
+                    UIHelper.playSound(voicePrefix + "/monster/atksummon", 1);
+            }
+            else if((UInt32)CardPosition.FaceUpDefence == card.p.position) //守备表示召唤
+            {
+                UIHelper.playSound(voicePrefix + "/monster/defensesummon", 1);
+            }
+            else if((UInt32)CardPosition.FaceDownDefence == card.p.position) //怪兽覆盖
+            {
+                UIHelper.playSound(voicePrefix + "/monster/fuseru", 1);
+            }
+            else if ((UInt32)CardPosition.FaceDown == card.p.position) //怪兽覆盖
+            {
+                UIHelper.playSound(voicePrefix + "/card/cardfuseru", 1);
+            }
+        }
+    }
+
+    // 效果语音
+    private void effectVoice(gameCard card, int player, GameMessage chainType)
+    {
+        if (!voiceOpened)
+            return;
+
+        string voicePrefix = 0 == card.p.controller ? "self" : "opponent";
+        string mainType = GameStringHelper.mainType(card.get_data().Type);
+        string secondType = GameStringHelper.secondType(card.get_data().Type);
+        float volumn = Program.I().setting.voiceValue();
+
+        if ("怪兽" == mainType)
+        {
+            UIHelper.playSound(voicePrefix + "/effect/monster", volumn);
+        }
+        else if("魔法" == mainType)
+        {
+            if ("通常" == secondType) //通常魔法发动
+            {
+                UIHelper.playSound(voicePrefix + "/effect/magic", volumn);
+            }
+            else if ("速攻" == secondType) //速攻魔法发动
+            {
+                UIHelper.playSound(voicePrefix + "/effect/fastmagic", volumn);
+            }
+            else if ("永续" == secondType) //永续魔法发动
+            {
+                UIHelper.playSound(voicePrefix + "/effect/infmagic", volumn);
+            }
+        }
+        else if("陷阱" == mainType)
+        {
+            if ("通常" == secondType) //通常魔法发动
+            {
+                UIHelper.playSound(voicePrefix + "/effect/trap", volumn);
+            }
+            else if ("永续" == secondType) //永续魔法发动
+            {
+                UIHelper.playSound(voicePrefix + "/effect/inftrap", volumn);
+            }
+            else if ("反击" == secondType) //永续魔法发动
+            {
+                UIHelper.playSound(voicePrefix + "/effect/countertrap", volumn);
+            }
+        }
+        
+    }
+
+    // 攻击语音
+    private void attackVoice(gameCard card1, gameCard card2, int player, GameMessage attackType)
+    {
+        if (!voiceOpened)
+            return;
+
+        string voicePrefix = 0 == card1.p.controller ? "self" : "opponent";
+        float volumn = Program.I().setting.voiceValue();
+
+        if (attackType == GameMessage.Attack)
+        {
+            if (life_1 <= card1.get_data().Attack)
+            {
+                UIHelper.playSound(voicePrefix + "/talk/koredeowarida", volumn);
+                Sleep(60);
+            }
+        }
+        else if(attackType == GameMessage.Battle)
+        {
+            if (null == card2)
+            {
+                if(life_1 > card1.get_data().Attack)
+                {
+                    UIHelper.playSound(voicePrefix + "/talk/directattack", volumn);
+                }
+                else
+                {
+                    UIHelper.playSound(voicePrefix + "/talk/directattack!", volumn);
+                }
+            }
+            else
+            {
+                UIHelper.playSound(voicePrefix + "/talk/attack", volumn);
+            }
+        }
+    }
+
+    // 受伤语音
+    private void damageVoice(int damage, int player, GameMessage damageType)
+    {
+        if (!voiceOpened)
+            return;
+
+        string voicePrefix = 0 == player ? "self" : "opponent";
+        int life = 0 == player ? life_0 : life_1;
+        float volumn = Program.I().setting.voiceValue();
+
+        if (GameMessage.PayLpCost == damageType)
+        {
+            UIHelper.playSound(voicePrefix + "/damage/1", volumn);
+        }
+        else
+        {
+            if(life >= 8000)
+            {
+                UIHelper.playSound(voicePrefix + "/damage/1", volumn);
+            }
+            else if (life >= 6666)
+            {
+                UIHelper.playSound(voicePrefix + "/damage/2", volumn);
+            }
+            else if (life >= 5333)
+            {
+                UIHelper.playSound(voicePrefix + "/damage/3", volumn);
+            }
+            else if (life >= 4000)
+            {
+                UIHelper.playSound(voicePrefix + "/damage/4", volumn);
+            }
+            else if (life >= 2666)
+            {
+                UIHelper.playSound(voicePrefix + "/damage/5", volumn);
+            }
+            else if (life >= 1333)
+            {
+                UIHelper.playSound(voicePrefix + "/damage/6", volumn);
+            }
+            else
+            {
+                UIHelper.playSound(voicePrefix + "/damage/7", volumn);
+            }
+        }
     }
 
     private void createPlaceSelector(byte[] resp)

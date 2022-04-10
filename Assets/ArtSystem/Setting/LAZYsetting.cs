@@ -3,6 +3,8 @@ using System.Collections;
 
 public class LAZYsetting : MonoBehaviour {
     public UISlider sliderVolum;
+    public UISlider sliderVoiceVol;
+    public UISlider sliderBgmVol;
     public UISlider sliderSizeDrawing;
     public UISlider sliderSize;
     public UISlider sliderAlpha;

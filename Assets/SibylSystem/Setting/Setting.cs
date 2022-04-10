@@ -14,6 +14,9 @@ public class Setting : WindowServant2D
         UIHelper.registEvent(gameObject, "screen_", resizeScreen);
         UIHelper.registEvent(gameObject, "full_", resizeScreen);
         UIHelper.registEvent(gameObject, "resize_", resizeScreen);
+        UIHelper.getByName<UISlider>(gameObject, "vol_").value = ((float)(int.Parse(Config.Get("vol_", "750")))) / 1000f;
+        UIHelper.getByName<UISlider>(gameObject, "vcv_").value = ((float)(int.Parse(Config.Get("vcv_", "750")))) / 1000f;
+        UIHelper.getByName<UISlider>(gameObject, "bgv_").value = ((float)(int.Parse(Config.Get("bgv_", "750")))) / 1000f;
         UIHelper.getByName<UIToggle>(gameObject, "full_").value = Screen.fullScreen;
         UIHelper.getByName<UIToggle>(gameObject, "ignoreWatcher_").value = UIHelper.fromStringToBool(Config.Get("ignoreWatcher_", "0"));
         UIHelper.getByName<UIToggle>(gameObject, "ignoreOP_").value = UIHelper.fromStringToBool(Config.Get("ignoreOP_", "0"));
@@ -83,6 +86,8 @@ public class Setting : WindowServant2D
         try
         {
             setting.sliderVolum.forceValue(((float)(int.Parse(Config.Get("vol_", "750")))) / 1000f);
+            setting.sliderVoiceVol.forceValue(((float)(int.Parse(Config.Get("vcv_", "750")))) / 1000f);
+            setting.sliderBgmVol.forceValue(((float)(int.Parse(Config.Get("bgv_", "750")))) / 1000f);
             setting.sliderSize.forceValue(((float)(int.Parse(Config.Get("size_", "500")))) / 1000f);
             setting.sliderSizeDrawing.forceValue(((float)(int.Parse(Config.Get("vSize_", "500")))) / 1000f);
             //setting.sliderAlpha.forceValue(((float)(int.Parse(Config.Get("alpha_", "666")))) / 1000f);
@@ -237,6 +242,8 @@ public class Setting : WindowServant2D
     public void saveWhenQuit()
     {
         Config.Set("vol_", ((int)(UIHelper.getByName<UISlider>(gameObject, "vol_").value * 1000)).ToString());
+        Config.Set("vcv_", ((int)(UIHelper.getByName<UISlider>(gameObject, "vcv_").value * 1000)).ToString());
+        Config.Set("bgv_", ((int)(UIHelper.getByName<UISlider>(gameObject, "bgv_").value * 1000)).ToString());
         Config.Set("size_", ((int)(UIHelper.getByName<UISlider>(gameObject, "size_").value * 1000)).ToString());
         Config.Set("vSize_", ((int)(UIHelper.getByName<UISlider>(gameObject, "vSize_").value * 1000)).ToString());
         //Config.Set("alpha_", ((int)(UIHelper.getByName<UISlider>(gameObject, "alpha_").value * 1000)).ToString());
@@ -277,5 +284,15 @@ public class Setting : WindowServant2D
     public float soundValue()
     {
         return UIHelper.getByName<UISlider>(gameObject, "vol_").value;
+    }
+
+    public float voiceValue()
+    {
+        return UIHelper.getByName<UISlider>(gameObject, "vcv_").value;
+    }
+
+    public float bgmValue()
+    {
+        return UIHelper.getByName<UISlider>(gameObject, "bgv_").value;
     }
 }
