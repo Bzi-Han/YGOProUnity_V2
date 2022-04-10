@@ -1014,7 +1014,6 @@ public static class UIHelper
     internal static void playBgm(string p, float val, bool loop = false)
     {
         string path = "sound/" + p + ".mp3";
-        Program.PrintToChat("playBgm:" + path);
         if (File.Exists(path) == false)
         {
             path = "sound/" + p + ".wav";
@@ -1025,13 +1024,36 @@ public static class UIHelper
         }
         if (File.Exists(path) == false)
         {
-            Program.PrintToChat("playBgm:" + path + "not found");
             return;
         }
         path = Environment.CurrentDirectory.Replace("\\", "/") + "/" + path;
         path = "file:///" + path;
-        Program.PrintToChat("playBgm:" + path);
         Program.bgmHelper.change_bgm(path, val, loop);
+    }
+
+    public static bool playStartDuelStatus = false;
+    internal static void playStartDuel()
+    {
+        if (playStartDuelStatus)
+            return;
+        playStartDuelStatus = true;
+
+        Program.I().startDuelAnimation.Play ();
+        playSound("duelstart", Program.I().setting.voiceValue());
+        Program.go(1300, () => {
+            playSound("Duel01", Program.I().setting.voiceValue());
+            playSound("Duel02", Program.I().setting.voiceValue());
+        });
+        if (Program.I().ocgcore.bgmOpened)
+        {
+            Program.go(1400, () => {
+                Program.I().ocgcore.playRandomBgm();
+            });
+        }
+        Program.go(2000, () => {
+            Program.I().startDuelAnimation.Stop();
+            playStartDuelStatus = false;
+        });
     }
 
     internal static string getGPSstringLocation(GPS p1)

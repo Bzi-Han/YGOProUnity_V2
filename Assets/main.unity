@@ -769,6 +769,16 @@ Prefab:
       propertyPath: mod_audio_bgm
       value: 
       objectReference: {fileID: 147400, guid: 974c0abca2267184785b6d770ef3d669, type: 2}
+    - target: {fileID: 11419100, guid: 995e2fa1a1156d248955c5fb98502585, type: 2}
+      propertyPath: movieTexture
+      value: 
+      objectReference: {fileID: 15200000, guid: 4ff244f1a3bb3fd4a862cb521544dcd0,
+        type: 3}
+    - target: {fileID: 11419100, guid: 995e2fa1a1156d248955c5fb98502585, type: 2}
+      propertyPath: startDuelAnimation
+      value: 
+      objectReference: {fileID: 15200000, guid: 4ff244f1a3bb3fd4a862cb521544dcd0,
+        type: 3}
     m_RemovedComponents: []
   m_ParentPrefab: {fileID: 100100000, guid: 995e2fa1a1156d248955c5fb98502585, type: 2}
   m_IsPrefabParent: 0

@@ -138,6 +138,7 @@ public class Program : MonoBehaviour
     public GameObject New_winCaculator;
     public GameObject New_winCaculatorRecord;
     public GameObject New_ocgcore_placeSelector;
+    public MovieTexture startDuelAnimation;
     #endregion
 
     #region Initializement
@@ -1020,6 +1021,9 @@ public class Program : MonoBehaviour
             _padScroll = -Event.current.delta.y / 100;
         else
             _padScroll = 0;
+
+        if (UIHelper.playStartDuelStatus)
+            GUI.DrawTexture (new Rect (0, 0, Screen.width, Screen.height), startDuelAnimation, ScaleMode.StretchToFill);
     }
 
     void Update()

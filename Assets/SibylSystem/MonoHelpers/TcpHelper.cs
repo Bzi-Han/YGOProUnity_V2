@@ -197,6 +197,7 @@ public static class TcpHelper
             {
                 if (Program.I().menu.isShowed == false) 
                 {
+                    Program.bgmHelper.stop(); // 停止背景音乐
                     Program.I().shiftToServant(Program.I().selectServer);
                 }
                 Program.I().cardDescription.RMSshow_none(InterString.Get("连接被断开。"));

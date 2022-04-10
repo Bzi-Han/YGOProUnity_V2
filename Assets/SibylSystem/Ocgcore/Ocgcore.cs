@@ -1415,6 +1415,7 @@ public class Ocgcore : ServantWithCardDescription
                 isObserver = ((playertype & 0xf0) > 0) ? true : false;
                 if (r.BaseStream.Length > 17) // dumb fix for yrp3d replay older than v1.034.9
                     MasterRule = r.ReadByte(); // duel_rule
+                gameInfo.reset(); // 重置一下最后的血量信息
                 life_0 = r.ReadInt32();
                 life_1 = r.ReadInt32();
                 lpLimit = life_0;
@@ -2874,13 +2875,13 @@ public class Ocgcore : ServantWithCardDescription
     private int turnPlayer = 0;
     void practicalizeMessage(Package p)
     {
-        string voicePrefix = "";
         int player = 0;
         int count = 0;
         int code = 0;
         int min = 0;
         int max = 0;
         bool cancalable = false;
+        string voiceSource = "";
         GPS gps;
         gameCard card;
         BinaryReader r = p.Data.reader;
@@ -3051,13 +3052,14 @@ public class Ocgcore : ServantWithCardDescription
                 clearChainEnd();
                 hideCaculator();
 
-                // 对局开始语音
+                // 对局开始动画与语音
                 if(voiceOpened)
                 {
-                    UIHelper.playSound("Duel01", Program.I().setting.voiceValue());
-                    UIHelper.playSound("Duel02", Program.I().setting.voiceValue());
+                    UIHelper.playStartDuel();
+                    Sleep(128);
                 }
-                if(bgmOpened)
+                // 对局开始背景音乐
+                if(!voiceOpened && bgmOpened)
                 {
                     // UIHelper.playBgm("bgm", Program.I().setting.bgmValue());
                     playRandomBgm();
@@ -3143,6 +3145,9 @@ public class Ocgcore : ServantWithCardDescription
                         RMSshow_none(InterString.Get("游戏败北，原因：[?]", winReason));
                     }
                 }
+
+                // 停止背景音乐
+                Program.bgmHelper.stop();
                 break;
             case GameMessage.RequestDeck:
                 break;
@@ -4483,8 +4488,8 @@ public class Ocgcore : ServantWithCardDescription
                 turnPlayer = player;
                 if(voiceOpened)
                 {
-                    voicePrefix = 0 == player ? "self" : "opponent";
-                    UIHelper.playSound(voicePrefix + "/phase/orenoturn", Program.I().setting.voiceValue());
+                    voiceSource = 0 == player ? "self" : "opponent";
+                    UIHelper.playSound(voiceSource + "/phase/orenoturn", Program.I().setting.voiceValue());
                 }
                 break;
             case GameMessage.NewPhase:
@@ -4492,17 +4497,17 @@ public class Ocgcore : ServantWithCardDescription
                 toDefaultHint();
                 UIHelper.playSound("phase", Program.I().setting.soundValue());
                 int phrase = r.ReadUInt16();
-                voicePrefix = 0 == turnPlayer ? "self" : "opponent"; // 语音人物类型
+                voiceSource = 0 == turnPlayer ? "self" : "opponent"; // 语音人物类型
 
                 if (GameStringHelper.differ(phrase, (long)DuelPhase.BattleStart))
                 {
                     // 战斗开始
                     if(voiceOpened)
                     {
-                        UIHelper.playSound(voicePrefix + "/talk/ikuze", Program.I().setting.voiceValue());
+                        UIHelper.playSound(voiceSource + "/talk/ikuze", Program.I().setting.voiceValue());
                         Program.go(500, () =>
                         {
-                            UIHelper.playSound(voicePrefix + "/phase/battle", Program.I().setting.voiceValue());
+                            UIHelper.playSound(voiceSource + "/phase/battle", Program.I().setting.voiceValue());
                         });
                     }
 
@@ -4517,7 +4522,7 @@ public class Ocgcore : ServantWithCardDescription
                     // 回合结束
                     if(voiceOpened)
                     {
-                        UIHelper.playSound(voicePrefix + "/phase/turnend", Program.I().setting.voiceValue());
+                        UIHelper.playSound(voiceSource + "/phase/turnend", Program.I().setting.voiceValue());
                     }
 
                     gameField.animation_show_big_string(GameTextureManager.ep);
@@ -5016,8 +5021,8 @@ public class Ocgcore : ServantWithCardDescription
                 // 抽卡
                 if(0 != turns && voiceOpened)
                 {
-                    voicePrefix = 0 == localPlayer(r.ReadByte()) ? "self" : "opponent";
-                    UIHelper.playSound(voicePrefix + "/card/cardhiku", Program.I().setting.voiceValue());
+                    voiceSource = 0 == localPlayer(r.ReadByte()) ? "self" : "opponent";
+                    UIHelper.playSound(voiceSource + "/card/cardhiku", Program.I().setting.voiceValue());
                 }
 
                 UIHelper.playSound("draw", Program.I().setting.soundValue());
@@ -5518,28 +5523,28 @@ public class Ocgcore : ServantWithCardDescription
         // TODO: 检测是否CardLocation.Unknown，如果为否根据card.controller和player来遍历player玩家的可用卡片，然后模拟效果，然后播放bgm
 
         // 提前在selectchain中保存卡片出处，然后再播放voice
-        string voicePrefix = 0 == card.p.controller ? "self" : "opponent";
-        float volumn = Program.I().setting.voiceValue();
+        string voiceSource = 0 == card.p.controller ? "self" : "opponent";
+        float voiceVolume = Program.I().setting.voiceValue();
 
         if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Fusion)) //融合召唤
         {
-            UIHelper.playSound(voicePrefix + "/monster/fusionsummon", volumn);
+            UIHelper.playSound(voiceSource + "/monster/fusionsummon", voiceVolume);
         }
         else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Synchro)) //同调召唤
         {
-            UIHelper.playSound(voicePrefix + "/monster/synchronsummon", volumn);
+            UIHelper.playSound(voiceSource + "/monster/synchronsummon", voiceVolume);
         }
         else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Ritual)) //仪式召唤
         {
-            UIHelper.playSound(voicePrefix + "/monster/ritualsummon", volumn);
+            UIHelper.playSound(voiceSource + "/monster/ritualsummon", voiceVolume);
         }
         else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Xyz)) //超量召唤
         {
-            UIHelper.playSound(voicePrefix + "/monster/xyzsummon", volumn);
+            UIHelper.playSound(voiceSource + "/monster/xyzsummon", voiceVolume);
         }
         else if (GameStringHelper.differ(card.get_data().Type, (long)CardType.Pendulum)) //灵摆召唤
         {
-            UIHelper.playSound(voicePrefix + "/monster/pendulumsummon", volumn);
+            UIHelper.playSound(voiceSource + "/monster/pendulumsummon", voiceVolume);
         }
         else
         {
@@ -5549,7 +5554,7 @@ public class Ocgcore : ServantWithCardDescription
             //Program.PrintToChat("sequence:" + card.p.sequence);
             if (GameMessage.SpSummoning == summonType) //特殊召唤
             {
-                UIHelper.playSound(voicePrefix + "/monster/specialsummon", volumn);
+                UIHelper.playSound(voiceSource + "/monster/specialsummon", voiceVolume);
             }
             else if(GameMessage.FlipSummoning == summonType) //反转召唤
             {
@@ -5558,21 +5563,21 @@ public class Ocgcore : ServantWithCardDescription
             else if ((UInt32)CardPosition.FaceUpAttack == card.p.position) //攻击表示召唤
             {
                 if (card.get_data().Level > 4)
-                    UIHelper.playSound(voicePrefix + "/monster/advancedsummon", volumn);
+                    UIHelper.playSound(voiceSource + "/monster/advancedsummon", voiceVolume);
                 else
-                    UIHelper.playSound(voicePrefix + "/monster/atksummon", volumn);
+                    UIHelper.playSound(voiceSource + "/monster/atksummon", voiceVolume);
             }
             else if((UInt32)CardPosition.FaceUpDefence == card.p.position) //守备表示召唤
             {
-                UIHelper.playSound(voicePrefix + "/monster/defensesummon", volumn);
+                UIHelper.playSound(voiceSource + "/monster/defensesummon", voiceVolume);
             }
             else if((UInt32)CardPosition.FaceDownDefence == card.p.position) //怪兽覆盖
             {
-                UIHelper.playSound(voicePrefix + "/monster/fuseru", volumn);
+                UIHelper.playSound(voiceSource + "/monster/fuseru", voiceVolume);
             }
             else if ((UInt32)CardPosition.FaceDown == card.p.position) //怪兽覆盖
             {
-                UIHelper.playSound(voicePrefix + "/card/cardfuseru", volumn);
+                UIHelper.playSound(voiceSource + "/card/cardfuseru", voiceVolume);
             }
         }
     }
@@ -5583,43 +5588,43 @@ public class Ocgcore : ServantWithCardDescription
         if (!voiceOpened)
             return;
 
-        string voicePrefix = 0 == card.p.controller ? "self" : "opponent";
+        string voiceSource = 0 == card.p.controller ? "self" : "opponent";
         string mainType = GameStringHelper.mainType(card.get_data().Type);
         string secondType = GameStringHelper.secondType(card.get_data().Type);
-        float volumn = Program.I().setting.voiceValue();
+        float voiceVolume = Program.I().setting.voiceValue();
 
         if ("怪兽" == mainType)
         {
-            UIHelper.playSound(voicePrefix + "/effect/monster", volumn);
+            UIHelper.playSound(voiceSource + "/effect/monster", voiceVolume);
         }
         else if("魔法" == mainType)
         {
             if ("通常" == secondType) //通常魔法发动
             {
-                UIHelper.playSound(voicePrefix + "/effect/magic", volumn);
+                UIHelper.playSound(voiceSource + "/effect/magic", voiceVolume);
             }
             else if ("速攻" == secondType) //速攻魔法发动
             {
-                UIHelper.playSound(voicePrefix + "/effect/fastmagic", volumn);
+                UIHelper.playSound(voiceSource + "/effect/fastmagic", voiceVolume);
             }
             else if ("永续" == secondType) //永续魔法发动
             {
-                UIHelper.playSound(voicePrefix + "/effect/infmagic", volumn);
+                UIHelper.playSound(voiceSource + "/effect/infmagic", voiceVolume);
             }
         }
         else if("陷阱" == mainType)
         {
             if ("通常" == secondType) //通常魔法发动
             {
-                UIHelper.playSound(voicePrefix + "/effect/trap", volumn);
+                UIHelper.playSound(voiceSource + "/effect/trap", voiceVolume);
             }
             else if ("永续" == secondType) //永续魔法发动
             {
-                UIHelper.playSound(voicePrefix + "/effect/inftrap", volumn);
+                UIHelper.playSound(voiceSource + "/effect/inftrap", voiceVolume);
             }
             else if ("反击" == secondType) //永续魔法发动
             {
-                UIHelper.playSound(voicePrefix + "/effect/countertrap", volumn);
+                UIHelper.playSound(voiceSource + "/effect/countertrap", voiceVolume);
             }
         }
         
@@ -5631,14 +5636,14 @@ public class Ocgcore : ServantWithCardDescription
         if (!voiceOpened)
             return;
 
-        string voicePrefix = 0 == card1.p.controller ? "self" : "opponent";
-        float volumn = Program.I().setting.voiceValue();
+        string voiceSource = 0 == card1.p.controller ? "self" : "opponent";
+        float voiceVolume = Program.I().setting.voiceValue();
 
         if (attackType == GameMessage.Attack)
         {
             if (life_1 <= card1.get_data().Attack)
             {
-                UIHelper.playSound(voicePrefix + "/talk/koredeowarida", volumn);
+                UIHelper.playSound(voiceSource + "/talk/koredeowarida", voiceVolume);
                 Sleep(60);
             }
         }
@@ -5648,16 +5653,16 @@ public class Ocgcore : ServantWithCardDescription
             {
                 if(life_1 > card1.get_data().Attack)
                 {
-                    UIHelper.playSound(voicePrefix + "/talk/directattack", volumn);
+                    UIHelper.playSound(voiceSource + "/talk/directattack", voiceVolume);
                 }
                 else
                 {
-                    UIHelper.playSound(voicePrefix + "/talk/directattack!", volumn);
+                    UIHelper.playSound(voiceSource + "/talk/directattack!", voiceVolume);
                 }
             }
             else
             {
-                UIHelper.playSound(voicePrefix + "/talk/attack", volumn);
+                UIHelper.playSound(voiceSource + "/talk/attack", voiceVolume);
             }
         }
     }
@@ -5668,43 +5673,43 @@ public class Ocgcore : ServantWithCardDescription
         if (!voiceOpened)
             return;
 
-        string voicePrefix = 0 == player ? "self" : "opponent";
+        string voiceSource = 0 == player ? "self" : "opponent";
         int life = 0 == player ? life_0 : life_1;
-        float volumn = Program.I().setting.voiceValue();
+        float voiceVolume = Program.I().setting.voiceValue();
 
         if (GameMessage.PayLpCost == damageType)
         {
-            UIHelper.playSound(voicePrefix + "/damage/1", volumn);
+            UIHelper.playSound(voiceSource + "/damage/1", voiceVolume);
         }
         else
         {
             if(life >= 8000)
             {
-                UIHelper.playSound(voicePrefix + "/damage/1", volumn);
+                UIHelper.playSound(voiceSource + "/damage/1", voiceVolume);
             }
             else if (life >= 6666)
             {
-                UIHelper.playSound(voicePrefix + "/damage/2", volumn);
+                UIHelper.playSound(voiceSource + "/damage/2", voiceVolume);
             }
             else if (life >= 5333)
             {
-                UIHelper.playSound(voicePrefix + "/damage/3", volumn);
+                UIHelper.playSound(voiceSource + "/damage/3", voiceVolume);
             }
             else if (life >= 4000)
             {
-                UIHelper.playSound(voicePrefix + "/damage/4", volumn);
+                UIHelper.playSound(voiceSource + "/damage/4", voiceVolume);
             }
             else if (life >= 2666)
             {
-                UIHelper.playSound(voicePrefix + "/damage/5", volumn);
+                UIHelper.playSound(voiceSource + "/damage/5", voiceVolume);
             }
             else if (life >= 1333)
             {
-                UIHelper.playSound(voicePrefix + "/damage/6", volumn);
+                UIHelper.playSound(voiceSource + "/damage/6", voiceVolume);
             }
             else
             {
-                UIHelper.playSound(voicePrefix + "/damage/7", volumn);
+                UIHelper.playSound(voiceSource + "/damage/7", voiceVolume);
             }
         }
     }

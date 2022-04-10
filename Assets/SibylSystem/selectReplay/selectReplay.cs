@@ -487,6 +487,9 @@ public class selectReplay : WindowServantSP
         base.show();
         printFile();
         Program.charge();
+
+        // 停止背景音乐
+        Program.bgmHelper.stop();
     }
 
     void printFile()
@@ -519,6 +522,9 @@ public class selectReplay : WindowServantSP
 
     void onClickExit()
     {
+        // 停止背景音乐
+        Program.bgmHelper.stop();
+
         if (Program.exitOnReturn)
             Program.I().menu.onClickExit();
         else

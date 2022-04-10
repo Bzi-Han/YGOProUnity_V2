@@ -458,6 +458,11 @@ public class gameInfo : MonoBehaviour
 
     private int selfLastLifePoint = 0;
     private int enemyLastLifePoint = 0;
+    public void reset()
+    {
+        selfLastLifePoint = 0;
+        enemyLastLifePoint = 0;
+    }
     public void realize()
     {
         int selfLifePoint = Program.I().ocgcore.life_0;
