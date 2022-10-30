@@ -139,6 +139,7 @@ public class Program : MonoBehaviour
     public GameObject New_winCaculatorRecord;
     public GameObject New_ocgcore_placeSelector;
     public MovieTexture startDuelAnimation;
+    public UnityEngine.Video.VideoClip specialWin001; // 被封印的艾克佐迪亚
     #endregion
 
     #region Initializement

@@ -1056,6 +1056,26 @@ public static class UIHelper
         });
     }
 
+    internal static void playSpecialWin(UnityEngine.Video.VideoClip video, int duration = 2000)
+    {
+        var currentCamera = UICamera.mainCamera.gameObject;
+        var videoPlayer = currentCamera.GetComponent<UnityEngine.Video.VideoPlayer>();
+        if (null == videoPlayer)
+            videoPlayer = currentCamera.AddComponent<UnityEngine.Video.VideoPlayer>();
+
+        videoPlayer.playOnAwake = false;
+        videoPlayer.clip = video;
+        videoPlayer.renderMode = UnityEngine.Video.VideoRenderMode.CameraNearPlane;
+        videoPlayer.audioOutputMode = UnityEngine.Video.VideoAudioOutputMode.AudioSource;
+        videoPlayer.SetTargetAudioSource(0, Program.bgmHelper.audioMgr);
+        videoPlayer.Play();
+
+        Program.go(duration, () =>
+        {
+            videoPlayer.Stop();
+        });
+    }
+
     internal static string getGPSstringLocation(GPS p1)
     {
         string res = "";

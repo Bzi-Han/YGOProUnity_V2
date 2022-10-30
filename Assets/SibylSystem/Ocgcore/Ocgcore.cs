@@ -1097,7 +1097,12 @@ public class Ocgcore : ServantWithCardDescription
         }
     }
 
-    string winReason="";
+    int winType;
+    string winReason = "";
+    readonly HashSet<int> specialWinList = new HashSet<int>
+    {
+        16, //被封印的艾克佐迪亚特殊效果胜利
+    };
 
     bool ifMessageImportant(Package package)
     {
@@ -1348,7 +1353,7 @@ public class Ocgcore : ServantWithCardDescription
                 deckReserved = false;
                 cantCheckGrave = false;
                 player = localPlayer(r.ReadByte());
-                int winType = r.ReadByte();
+                winType = r.ReadByte();
                 keys.Insert(0, currentMessageIndex);
                 if (player == 2)
                 {
@@ -2717,7 +2722,7 @@ public class Ocgcore : ServantWithCardDescription
 
     lazyWin winCaculator = null;
 
-    void showCaculator()
+    void showCaculator(bool playExplode = true)
     {
         if (winCaculator == null)
         {
@@ -2734,11 +2739,14 @@ public class Ocgcore : ServantWithCardDescription
             point.z = 2;
             if (Program.I().setting.setting.Vwin.value)
             {
-                UIHelper.playSound("explode", Program.I().setting.soundValue());
-                GameObject explode = create(result == duelResult.win ? Program.I().mod_winExplode : Program.I().mod_loseExplode);
-                var co = explode.AddComponent<animation_screen_lock>();
-                co.screen_point = point;
-                explode.transform.position = Camera.main.ScreenToWorldPoint(point);
+                if (playExplode)
+                {
+                    UIHelper.playSound("explode", Program.I().setting.soundValue());
+                    GameObject explode = create(result == duelResult.win ? Program.I().mod_winExplode : Program.I().mod_loseExplode);
+                    var co = explode.AddComponent<animation_screen_lock>();
+                    co.screen_point = point;
+                    explode.transform.position = Camera.main.ScreenToWorldPoint(point);
+                }
             }
             if (condition == Condition.record)
             {
@@ -3115,9 +3123,25 @@ public class Ocgcore : ServantWithCardDescription
                 hideCaculator();
                 break;
             case GameMessage.Win:
+                // 停止背景音乐
+                Program.bgmHelper.stop();
+
                 player = localPlayer(r.ReadByte());
-                int winType = r.ReadByte();
-                showCaculator();
+                winType = r.ReadByte();
+
+                if (!specialWinList.Contains(winType))
+                    showCaculator();
+                else
+                {
+                    Program.go(2000, () => { showCaculator(false); });
+
+                    if (16 == winType) //被封印的艾克佐迪亚
+                    {
+                        UIHelper.playBgm("specialwin/001", Program.I().setting.bgmValue());
+                        UIHelper.playSpecialWin(Program.I().specialWin001, 13000);
+                    }
+                }
+
                 Sleep(120);
                 if (player == 2)
                 {
@@ -3145,9 +3169,6 @@ public class Ocgcore : ServantWithCardDescription
                         RMSshow_none(InterString.Get("游戏败北，原因：[?]", winReason));
                     }
                 }
-
-                // 停止背景音乐
-                Program.bgmHelper.stop();
                 break;
             case GameMessage.RequestDeck:
                 break;
