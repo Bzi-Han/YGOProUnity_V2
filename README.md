@@ -23,3 +23,7 @@ We use Yu-Gi-Oh card game only to test our engine, and the game is not for comme
 2. build the c++ solution in x64 and release mode and you get the **ocgcore.dll**
 
 3. copy it into **YGOProUnity_V2\Assets\Plugins**
+
+# Build version for this repository
+
+[Jump to repository](https://github.com/Bzi-Han/YGOProUnity_V2_Build.git)
